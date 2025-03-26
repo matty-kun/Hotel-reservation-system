@@ -1,32 +1,44 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" version="26.1.1">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" version="26.1.2">
   <diagram name="Page-1" id="7mdAxH2rKgmcStlAF3fM">
-    <mxGraphModel dx="1050" dy="603" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="875" dy="503" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="eU0cNpznHnaWI53QPsp3-1" value="" style="swimlane;startSize=0;" vertex="1" parent="1">
-          <mxGeometry x="270" y="30" width="310" height="570" as="geometry" />
+        <mxCell id="eU0cNpznHnaWI53QPsp3-1" value="" style="swimlane;startSize=0;" parent="1" vertex="1">
+          <mxGeometry x="270" y="30" width="310" height="780" as="geometry" />
         </mxCell>
-        <mxCell id="eU0cNpznHnaWI53QPsp3-2" value="Log In/ Registration" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+        <mxCell id="eU0cNpznHnaWI53QPsp3-2" value="Log In/ Registration" style="ellipse;whiteSpace=wrap;html=1;" parent="eU0cNpznHnaWI53QPsp3-1" vertex="1">
           <mxGeometry x="80" y="10" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="eU0cNpznHnaWI53QPsp3-5" value="Find Rooms Available" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+        <mxCell id="eU0cNpznHnaWI53QPsp3-5" value="Find Rooms Available" style="ellipse;whiteSpace=wrap;html=1;" parent="eU0cNpznHnaWI53QPsp3-1" vertex="1">
           <mxGeometry x="80" y="90" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="eU0cNpznHnaWI53QPsp3-6" value="Pick a Room Category" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+        <mxCell id="eU0cNpznHnaWI53QPsp3-6" value="View Room Types and Prices" style="ellipse;whiteSpace=wrap;html=1;" parent="eU0cNpznHnaWI53QPsp3-1" vertex="1">
           <mxGeometry x="80" y="170" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="eU0cNpznHnaWI53QPsp3-7" value="Pick How Long will they stay" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+        <mxCell id="eU0cNpznHnaWI53QPsp3-7" value="Pick How Long will they stay" style="ellipse;whiteSpace=wrap;html=1;" parent="eU0cNpznHnaWI53QPsp3-1" vertex="1">
           <mxGeometry x="80" y="250" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="eU0cNpznHnaWI53QPsp3-13" value="Booking and Cancellation" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+        <mxCell id="eU0cNpznHnaWI53QPsp3-13" value="Booking and Cancellation" style="ellipse;whiteSpace=wrap;html=1;" parent="eU0cNpznHnaWI53QPsp3-1" vertex="1">
           <mxGeometry x="80" y="330" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="eU0cNpznHnaWI53QPsp3-20" value="Use Case" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+        <mxCell id="eU0cNpznHnaWI53QPsp3-20" value="Update Room Availability" style="ellipse;whiteSpace=wrap;html=1;" parent="eU0cNpznHnaWI53QPsp3-1" vertex="1">
           <mxGeometry x="80" y="410" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="eU0cNpznHnaWI53QPsp3-21" value="Use Case" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+        <mxCell id="eU0cNpznHnaWI53QPsp3-21" value="Update Room Types and Prices" style="ellipse;whiteSpace=wrap;html=1;" parent="eU0cNpznHnaWI53QPsp3-1" vertex="1">
           <mxGeometry x="80" y="485" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="wjSBa9-h62s1OFlzvsq0-7" value="Update Room Types and Prices" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="eU0cNpznHnaWI53QPsp3-1">
+          <mxGeometry x="80" y="570" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="wjSBa9-h62s1OFlzvsq0-1" value="Customer" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="100" y="320" width="50" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="wjSBa9-h62s1OFlzvsq0-2" value="&lt;br&gt;&lt;div&gt;Admin&lt;/div&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="320" width="50" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="wjSBa9-h62s1OFlzvsq0-6" value="&lt;b&gt;Hotel Reservation System&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="353" width="157" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
