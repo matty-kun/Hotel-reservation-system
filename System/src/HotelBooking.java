@@ -1,7 +1,7 @@
+package System.src;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.logging.Logger;
-import java.util.rooms;
 
 public class HotelBooking {
     private static final Logger logger = Logger.getLogger(HotelBooking.class.getName());
