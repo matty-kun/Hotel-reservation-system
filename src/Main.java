@@ -1,10 +1,9 @@
-package System.src;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
-public class HotelBooking {
-    private static final Logger logger = Logger.getLogger(HotelBooking.class.getName());
+public class Main {
+    private static final Logger logger = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
