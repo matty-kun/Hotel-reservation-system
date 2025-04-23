@@ -1,5 +1,3 @@
-package models;
-
 import db.DbFunctions;
 
 import java.sql.Connection;

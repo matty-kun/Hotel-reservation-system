@@ -1,20 +1,30 @@
 package models;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 
 public class Reservation implements Serializable {
+    private int reservationId;
     private int customerId;
     private int roomId;
-    private String checkInDate;
-    private String checkOutDate;
+    private LocalDate checkInDate;
+    private LocalDate checkOutDate;
     private String status;
 
-    public Reservation(int customerId, int roomId, String checkInDate, String checkOutDate, String status) {
+    public Reservation(int reservationId, int customerId, int roomId, LocalDate checkInDate, LocalDate checkOutDate, String status) {
+        this.reservationId = reservationId;
         this.customerId = customerId;
         this.roomId = roomId;
         this.checkInDate = checkInDate;
         this.checkOutDate = checkOutDate;
         this.status = status;
+    }
+
+    public void setReservationId(int reservationId) {
+        this.reservationId = reservationId;
+    }
+    public int getReservationId() {
+        return reservationId;
     }
 
     public int getCustomerId() {
@@ -25,11 +35,11 @@ public class Reservation implements Serializable {
         return roomId;
     }
 
-    public String getCheckInDate() {
+    public LocalDate getCheckInDate() {
         return checkInDate;
     }
 
-    public String getCheckOutDate() {
+    public LocalDate getCheckOutDate() {
         return checkOutDate;
     }
 
@@ -44,7 +54,8 @@ public class Reservation implements Serializable {
     @Override
     public String toString() {
         return "Reservation{" +
-                "customerId=" + customerId +
+                "reservationId=" + reservationId +
+                ", customerId=" + customerId +
                 ", roomId=" + roomId +
                 ", checkInDate='" + checkInDate + '\'' +
                 ", checkOutDate='" + checkOutDate + '\'' +

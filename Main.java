@@ -1,137 +1,126 @@
-// TO DO:
-// CLEAN UP THE MAIN.JAVA TOMORROW ( APRIL 15, 2025 )
-// CLEAN UP THE PAYMENT.JAVA AND ALL OTHER CLASSES TODAY ( APRIL 15, 2025 ) CHECK
-
-// VALIDATE USER'S INPUT TOMORROW ( APRIL 16, 2025 )
+// RECEIPT GENERATOR
+// PAYMENT OPTIONS
+// BOOKING SERVICE
 
 import db.DbFunctions;
 import models.Customer;
-import models.Room;
 import models.Reservation;
-import models.Payment;
-import models.Seeder;
-
+import models.Room;
+import services.BookingService;
+import services.CustomerMenuService;
+import services.CustomerService;
 import utils.InputValidator;
-import utils.LoggerConfig;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
 public class Main {
-    private static final Logger logger = LoggerConfig.getLogger(Main.class.getName());
+    private static final Logger logger = Logger.getLogger(Main.class.getName());
 
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         DbFunctions db = new DbFunctions();
         Connection conn = null;
 
         try {
+            // Step 1: Connect to the database
             conn = db.connect_to_db("hotel_transylvania", "postgres", "011006");
+            if (conn == null) {
+                System.out.println("❌ Failed to connect to the database.");
+                return;
+            }
+
             db.createTables(conn);
             Seeder.seedRooms(db, conn);
 
-            System.out.println("Welcome to Hotel Transylvania!");
+            System.out.println("=== Welcome to Hotel Transylvania! ===");
 
-            String name = InputValidator.getValidName(scanner);
-            String email = InputValidator.getValidEmail(scanner);
-            String phone = InputValidator.getValidPhone(scanner);
+            // Step 2: Handle Customer Login or Registration
+            Customer customer = null;
+            while (customer == null) {
+                System.out.println("\n🔐 Do you want to (1) Log In or (2) Register?");
+                System.out.print("Enter 1 or 2: ");
 
-            Customer customer = new Customer(name, email, phone);
-            int customerId = db.insertCustomer(conn, customer.getName(), customer.getEmail(), customer.getPhone());
-            customer.setCustomerId(customerId);
-
-            System.out.println("\n\uD83D\uDD39 Room Selection \uD83D\uDD39");
-            System.out.print("What type of room do you want? (e.g., Standard, Deluxe, Suite, Family): ");
-            String roomType = scanner.nextLine();
-            roomType = roomType.substring(0, 1).toUpperCase() + roomType.substring(1).toLowerCase();
-
-            List<Room> availableRooms = db.getAvailableRoomsByType(conn, roomType);
-
-            if (availableRooms.isEmpty()) {
-                System.out.println("❌ No available rooms of that type.");
-                return;
+                String choice = scanner.nextLine().trim();
+                if (choice.equals("1")) {
+                    customer = CustomerService.loginCustomer(scanner, db, conn);
+                    if (customer == null) {
+                        System.out.print("Would you like to register instead? (yes/no): ");
+                        if (scanner.nextLine().equalsIgnoreCase("yes")) {
+                            customer = CustomerService.registerCustomer(scanner, db, conn);
+                        }
+                    }
+                } else if (choice.equals("2")) {
+                    customer = CustomerService.registerCustomer(scanner, db, conn);
+                } else {
+                    System.out.println("❌ Invalid input. Please enter 1 or 2.");
+                }
             }
-            System.out.println("✅ Available Rooms: ");
-            for (Room r : availableRooms) {
-                System.out.printf("Room ID: %d | Type: %s | Price: ₱%.2f%n", r.getRoomId(), r.getRoomType(), r.getPrice());
-            }
-            System.out.print("Enter the Room ID you want to book: ");
-            int chosenRoomId;
-            try {
-                chosenRoomId = Integer.parseInt(scanner.nextLine());
-            } catch (NumberFormatException e) {
-                System.out.println("❌ Invalid Room Id. Please enter a valid number.");
-                return;
-            }
-            // Get the selected room
-            Room selectedRoom = availableRooms.stream()
-                    .filter(r -> r.getRoomId() == chosenRoomId)
-                    .findFirst()
-                    .orElse(null);
-            if (selectedRoom == null) {
-                System.out.println("❌ Invalid Room ID.");
-                return;
-            }
-            // Show room price
-            System.out.printf("You selected Room ID %d. Price: ₱%.2f%n", selectedRoom.getRoomId(), selectedRoom.getPrice());
 
-            // Check-In Date
-            LocalDate checkInDate = InputValidator.getValidDate(scanner, "Enter Check-In Date (YYYY-MM-DD): ");
-            LocalDate checkOutDate = InputValidator.getValidDate(scanner, "Enter Check-Out Date (YYYY-MM-DD): ");
+            System.out.println("✅ Welcome, " + customer.getName() + "!");
 
-            if (checkOutDate.isBefore(checkInDate)) {
-                System.out.println("❌ Check-out date must be after check-in date.");
+            CustomerMenuService menuService = new CustomerMenuService(db, scanner);
+            int menuChoice = menuService.showMenu(customer, conn);
+
+            if (menuChoice == 1) {
+                BookingService bookingService = new BookingService(db, scanner);
+                Reservation reservation = bookingService.processBooking(customer, conn);
+                proceedToPayment(reservation, customer, conn, db, scanner);
+            } else if (menuChoice == 2) {
+                System.out.print("🔎 Enter Reservation ID to view your receipt: ");
+                String idInput = scanner.nextLine().trim();
+                try {
+                    int resId = Integer.parseInt(idInput);
+                    String receipt = db.getReceiptByReservationId(conn, resId);
+                    System.out.println(receipt);
+                } catch (NumberFormatException e) {
+                    System.out.println("❌ Invalid Reservation ID format.");
+                }
+            } else if (menuChoice == 3) {
+                System.out.println("👋 Thank you for visiting Hotel Transylvania! Goodbye!");
                 return;
             }
 
-            // Summary
-            System.out.println("n\uD83D\uDCDD Booking Summary:");
-            System.out.printf("Customer: %s | Email: %s | Phone %s%n", name, email, phone);
-            System.out.printf("Room ID: %d | Type: %s | Price:  ₱%.2f%n", selectedRoom.getRoomId(), selectedRoom.getRoomType(), selectedRoom.getPrice());
-            System.out.printf("Check-In: %s | Check-Out: %s%n", checkInDate, checkOutDate);
-
-            System.out.print("Proceed with booking? (yes/no): ");
-            String confirm = scanner.nextLine();
-            if (!confirm.equalsIgnoreCase("yes")) {
-                System.out.println("❌ Booking cancelled.");
-                return;
-            }
-
-            String status = "Booked";
-
-            Reservation reservation = new Reservation(
-                    customer.getCustomerId(),
-                    selectedRoom.getRoomId(),
-                    checkInDate.toString(),
-                    checkOutDate.toString(),
-                    status
-            );
-
-            int reservationId = db.insertReservation(conn, reservation);
-            db.updateRoomAvailability(conn, selectedRoom.getRoomId(), false);
-
-            String paymentStatus = "Paid";
-            LocalDate today = java.time.LocalDate.now();
-            Payment payment = new Payment(
-                    reservationId, selectedRoom.getPrice(), today, paymentStatus
-            );
-            db.insertPayment(conn, reservationId, selectedRoom.getPrice(), today, paymentStatus);
-
-
-            System.out.println("\uD83C\uDFE8 Booking completed successfully.");
 
         } catch (SQLException e) {
-            System.out.println("\uD83D\uDCA5 Database Error: " + e.getMessage());
+            System.out.println("💥 Database Error: " + e.getMessage());
+            logger.severe("Database Error: " + e.getMessage());
         } finally {
             try {
                 if (conn != null) conn.close();
             } catch (SQLException ex) {
-                System.out.println("⚠\uFE0F Error closing the connection: " + ex.getMessage());
+                System.out.println("⚠️ Error closing the connection: " + ex.getMessage());
+                logger.warning("Error closing the connection: " + ex.getMessage());
             }
         }
+    }
+
+    // Handles the payment process after booking
+    private static void proceedToPayment(Reservation reservation, Customer customer, Connection conn, DbFunctions db, Scanner scanner) {
+        System.out.printf("You selected Room %d for payment.%n", reservation.getRoomId());
+        System.out.print("💳 Do you want to proceed with payment now? (yes/no): ");
+
+        String paymentChoice = scanner.nextLine();
+        if (paymentChoice.equalsIgnoreCase("yes")) {
+            try {
+                LocalDate paymentDate = LocalDate.now();
+                int reservationId = reservation.getReservationId(); // ✅ Now it's safe
+                double price = db.getRoomById(conn, reservation.getRoomId()).getPrice(); // If you still want to fetch the price
+
+                db.insertPayment(conn, reservationId, price, paymentDate, "Paid");
+                db.updateReservationStatus(conn, reservationId, "Paid");
+                System.out.println("✅ Payment processed successfully!");
+                System.out.println("🏨 Thank you for booking with Hotel Transylvania!");
+            } catch (Exception e) {
+                System.out.println("❌ An error occurred while processing the payment.");
+                logger.severe("Payment Error: " + e.getMessage());
+            }
+        } else {
+            System.out.println("🔔 You opted to pay later. Your reservation status remains 'Pending'.");
+        }
+
     }
 }
