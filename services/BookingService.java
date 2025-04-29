@@ -4,7 +4,6 @@ import db.DbFunctions;
 import models.Customer;
 import models.Reservation;
 import models.Room;
-import utils.InputValidator;
 
 import java.sql.Connection;
 import java.time.LocalDate;
@@ -12,71 +11,70 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
-// Handles the overall booking flow and room reservation tasks
 public class BookingService {
     private final DbFunctions dbFunctions;
     private final Scanner scanner;
-
     private static final Logger logger = Logger.getLogger(BookingService.class.getName());
-    private static final int MAX_STAY_DURATION = 30; // Maximum allowed number of days
+
+    // List of valid room types
     private static final List<String> VALID_ROOM_TYPES = List.of("Standard", "Deluxe", "Suite", "Family");
 
-    // Constructor that initializes DbFunctions and Scanner for input
+    // Constructor to initialize the booking service with DbFunctions and Scanner
     public BookingService(DbFunctions dbFunctions, Scanner scanner) {
         this.dbFunctions = dbFunctions;
         this.scanner = scanner;
     }
 
+    // Process a room booking
     public Reservation processBooking(Customer customer, Connection conn) {
-        // Step 1: Ask for Check-In and Check-Out Dates
         LocalDate checkInDate = getCheckInDate();
         LocalDate checkOutDate = getCheckOutDate(checkInDate);
 
-        // Step 2: Allow the customer to select a room
         Room selectedRoom = selectRoom(conn, checkInDate, checkOutDate);
 
-        // Step 3: Create Reservation in the Database
-        int reservationId = createReservation(customer, selectedRoom, checkInDate, checkOutDate, conn);
-        System.out.println("📋 Reservation created successfully! Your Reservation ID is: " + reservationId);
+        if (selectedRoom == null) {
+            System.out.println("❌ Booking canceled. Returning to the main menu...");
+            return null;
+        }
 
-        // ✅ Step 4: Return a new Reservation object
-        return new Reservation(
-                reservationId,
-                customer.getCustomerId(),
-                selectedRoom.getRoomId(),
-                checkInDate,
-                checkOutDate,
-                "Pending"  // Assuming the default status is "Pending"
-        );
+        Reservation reservation = createReservation(customer, selectedRoom, checkInDate, checkOutDate, conn);
+
+        System.out.println("📋 Booking success! Reservation ID: " + reservation.getReservationId());
+        return reservation;
     }
 
-
-    // Step 1: Get a valid Check-In date
+    // Step 1: Get a valid Check-In date from the user
     private LocalDate getCheckInDate() {
-        return InputValidator.getValidDate(scanner, "Enter your Check-In date (YYYY-MM-DD): ");
+        System.out.print("Enter Check-In Date (YYYY-MM-DD): ");
+        String inputDate = scanner.nextLine();
+        return LocalDate.parse(inputDate); // Simplified, assumes valid input
     }
 
-    // Step 2: Get a valid Check-Out date with validation
+    // Step 2: Get a valid Check-Out date
     private LocalDate getCheckOutDate(LocalDate checkInDate) {
         while (true) {
-            LocalDate checkOutDate = InputValidator.getValidDate(scanner, "Enter your Check-Out date (YYYY-MM-DD): ");
-            if (checkOutDate.isBefore(checkInDate)) {
-                System.out.println("❌ Check-Out date must be after Check-In date.");
-                continue;
+            System.out.print("Enter Check-Out Date (YYYY-MM-DD): ");
+            String inputDate = scanner.nextLine();
+            LocalDate checkOutDate = LocalDate.parse(inputDate);
+
+            if (checkOutDate.isAfter(checkInDate)) {
+                return checkOutDate;
+            } else {
+                System.out.println("❌ Check-Out must be after Check-In. Try again.");
             }
-            if (checkOutDate.isAfter(checkInDate.plusDays(MAX_STAY_DURATION))) {
-                System.out.println("❌ Stay cannot exceed " + MAX_STAY_DURATION + " days. Please choose a shorter duration.");
-                continue;
-            }
-            return checkOutDate;
         }
     }
 
-    // Step 3: Select an available room based on dates and type
+    // Step 3: Select an available room for booking
     private Room selectRoom(Connection conn, LocalDate checkInDate, LocalDate checkOutDate) {
         while (true) {
-            // Prompt the user to select room type
-            System.out.print("Enter your preferred Room Type (e.g., Standard, Deluxe, Suite, Family): ");
+            // Prompt the user to choose a room type with its description displayed
+            System.out.println("\nChoose from the following room types:");
+            System.out.println("Standard - A cozy room with essential amenities, suitable for solo travelers or couples on a budget.");
+            System.out.println("Deluxe   - A spacious room featuring upgraded furniture and a great view, perfect for small families.");
+            System.out.println("Suite    - A luxurious suite with premium facilities, including a living area and king-size bed.");
+            System.out.println("Family   - A large, well-equipped family room designed to accommodate up to 5 guests comfortably.");
+            System.out.print("Enter your preferred Room Type (Standard, Deluxe, Suite, Family): ");
             String roomType = scanner.nextLine().trim();
 
             if (!VALID_ROOM_TYPES.contains(roomType)) {
@@ -85,83 +83,65 @@ public class BookingService {
             }
 
             try {
-                // Fetch available rooms for the dates and type
+                // Fetch and display available rooms
                 List<Room> availableRooms = dbFunctions.getAvailableRoomsByType(conn, roomType);
-
                 if (availableRooms.isEmpty()) {
-                    System.out.println("❌ No available rooms of type '" + roomType + "' for your selected dates. Try choosing another type.");
+                    System.out.println("❌ No rooms of type '" + roomType + "' are available. Try another type.");
                     continue;
                 }
 
-                // Display available rooms
-                System.out.println("Here's the list of available rooms for your selected dates:");
+                // Display only Room ID and Price
+                System.out.println("\nAvailable Rooms for " + roomType + ":");
+                System.out.println("╔═══════════════════════╗");
+                System.out.println("║ Room ID | Price        ║");
+                System.out.println("╠═══════════════════════╣");
+
                 for (Room room : availableRooms) {
-                    System.out.printf("- Room [%d] Type: %s, Price: ₱%.2f per night%n",
-                            room.getRoomId(), room.getRoomType(), room.getPrice());
+                    System.out.printf("║ %-7d | PHP %-8.2f ║%n",
+                            room.getRoomId(),
+                            room.getPrice());
                 }
+                System.out.println("╚════════════════════════╝");
 
-                // Prompt the user to select a room by ID
-                System.out.print("Enter the Room ID you would like to book: ");
-                int selectedRoomId = Integer.parseInt(scanner.nextLine());
+                // Prompt user for room ID
+                System.out.print("\nEnter the Room ID to book: ");
+                int roomId = Integer.parseInt(scanner.nextLine().trim());
 
-                boolean isAvailable = dbFunctions.isRoomAvailable(conn, selectedRoomId, checkInDate, checkOutDate);
-                if (!isAvailable) {
-                    System.out.println("❌ Selected room is not available for the chosen dates.");
+                // Validate room selection and check availability
+                Room selectedRoom = availableRooms.stream()
+                        .filter(room -> room.getRoomId() == roomId)
+                        .findFirst()
+                        .orElse(null);
+
+                if (selectedRoom == null) {
+                    System.out.println("❌ Invalid Room ID. Please select from the list.");
                     continue;
                 }
 
-                // Return the room if it matches the ID
-                return availableRooms.stream()
-                        .filter(room -> room.getRoomId() == selectedRoomId)
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("Room ID not available. Please try again."));
-            } catch (IllegalArgumentException e) {
-                System.out.println("❌ Invalid input. Please try again.");
+                if (!dbFunctions.isRoomAvailable(conn, roomId, checkInDate, checkOutDate)) {
+                    System.out.println("❌ Selected room is no longer available. Try another.");
+                    continue;
+                }
+
+                return selectedRoom; // Return the successfully selected room
+
             } catch (Exception e) {
-                System.out.println("❌ An error occurred while selecting a room. Please try again later.");
-                logger.severe("An error occurred during room selection: " + e.getMessage());
-                e.printStackTrace();
+                System.out.println("❌ Error occurred: " + e.getMessage());
             }
         }
     }
 
-    // Step 4: Create a reservation and store it in the database
-    private int createReservation(Customer customer, Room room, LocalDate checkInDate, LocalDate checkOutDate, Connection conn) {
+    // Step 4: Create a reservation
+    private Reservation createReservation(Customer customer, Room room, LocalDate checkInDate, LocalDate checkOutDate, Connection conn) {
         try {
-            Reservation reservation = new Reservation(
-                0, // Auto-generated ID
-                customer.getCustomerId(),
-                room.getRoomId(),
-                checkInDate,
-                checkOutDate,
-                "Pending" // Default status upon creation
-            );
-
+            System.out.println("Creating your reservation...");
+            Reservation reservation = new Reservation(0, customer.getCustomerId(), room.getRoomId(), checkInDate, checkOutDate, "Pending");
             int reservationId = dbFunctions.insertReservation(conn, reservation);
-            if (reservationId <= 0) {
-                logger.severe("Failed to create reservation. No valid ID returned.");
-                throw new RuntimeException("Failed to create reservation.");
-            }
-
-            // Update room's availability
-            dbFunctions.updateRoomAvailability(conn, room.getRoomId(), false);
-
-            logger.info("Reservation created successfully with ID: " + reservationId);
-
-            reservation = dbFunctions.getReservationById(conn, reservationId);
-
-            if (reservation != null) {
-                dbFunctions.insertPayment(conn, reservationId, room.getPrice(), LocalDate.now(), "Paid");
-                dbFunctions.updateReservationStatus(conn, reservationId, "Paid");
-                System.out.println("✅ Payment processed successfully!");
-            } else {
-                logger.severe("Cannot process payment: Reservation ID " + reservationId + " does not exist.");
-                System.out.println("❌ Payment failed. Reservation not found.");
-            }
-            return reservationId;
+            reservation.setReservationId(reservationId);
+            return reservation;
         } catch (Exception e) {
-            logger.severe("Failed to create reservation: " + e.getMessage());
-            throw new RuntimeException("Reservation creation failed.", e);
+            System.out.println("❌ Failed to create reservation. Please try again later.");
+            throw new RuntimeException(e);
         }
     }
 }

@@ -1,24 +1,24 @@
-// RECEIPT GENERATOR
-// PAYMENT OPTIONS
-// BOOKING SERVICE
-
 import db.DbFunctions;
 import models.Customer;
 import models.Reservation;
-import models.Room;
 import services.BookingService;
 import services.CustomerMenuService;
 import services.CustomerService;
+import services.PaymentProcessing;
+import utils.ConsoleColors;
 import utils.InputValidator;
+import utils.UIHelper;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDate;
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
+// Main Class for the Hotel Transylvania Application
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
+    private static Customer currentCustomer;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -29,98 +29,184 @@ public class Main {
             // Step 1: Connect to the database
             conn = db.connect_to_db("hotel_transylvania", "postgres", "011006");
             if (conn == null) {
-                System.out.println("❌ Failed to connect to the database.");
+                System.out.println(ConsoleColors.BRIGHT_RED + "❌ Failed to connect to the database. Exiting..." + ConsoleColors.RESET);
                 return;
             }
 
+            // Initialize database tables and seed data
             db.createTables(conn);
             Seeder.seedRooms(db, conn);
 
-            System.out.println("=== Welcome to Hotel Transylvania! ===");
+            // Step 2: Display Welcome Message with Fun UI
+            displayWelcomeMessage();
 
-            // Step 2: Handle Customer Login or Registration
-            Customer customer = null;
-            while (customer == null) {
-                System.out.println("\n🔐 Do you want to (1) Log In or (2) Register?");
-                System.out.print("Enter 1 or 2: ");
-
-                String choice = scanner.nextLine().trim();
-                if (choice.equals("1")) {
-                    customer = CustomerService.loginCustomer(scanner, db, conn);
-                    if (customer == null) {
-                        System.out.print("Would you like to register instead? (yes/no): ");
-                        if (scanner.nextLine().equalsIgnoreCase("yes")) {
-                            customer = CustomerService.registerCustomer(scanner, db, conn);
-                        }
-                    }
-                } else if (choice.equals("2")) {
-                    customer = CustomerService.registerCustomer(scanner, db, conn);
-                } else {
-                    System.out.println("❌ Invalid input. Please enter 1 or 2.");
-                }
-            }
-
-            System.out.println("✅ Welcome, " + customer.getName() + "!");
-
-            CustomerMenuService menuService = new CustomerMenuService(db, scanner);
-            int menuChoice = menuService.showMenu(customer, conn);
-
-            if (menuChoice == 1) {
-                BookingService bookingService = new BookingService(db, scanner);
-                Reservation reservation = bookingService.processBooking(customer, conn);
-                proceedToPayment(reservation, customer, conn, db, scanner);
-            } else if (menuChoice == 2) {
-                System.out.print("🔎 Enter Reservation ID to view your receipt: ");
-                String idInput = scanner.nextLine().trim();
-                try {
-                    int resId = Integer.parseInt(idInput);
-                    String receipt = db.getReceiptByReservationId(conn, resId);
-                    System.out.println(receipt);
-                } catch (NumberFormatException e) {
-                    System.out.println("❌ Invalid Reservation ID format.");
-                }
-            } else if (menuChoice == 3) {
-                System.out.println("👋 Thank you for visiting Hotel Transylvania! Goodbye!");
+            // Step 3: Handle Login/Registration
+            currentCustomer = handleLoginOrRegistration(scanner, db, conn);
+            if (currentCustomer == null) {
+                System.out.println(ConsoleColors.BRIGHT_RED + "💔 Goodbye! We're sad to see you go." + ConsoleColors.RESET);
                 return;
             }
 
+            // Step 4: Main Menu Actions
+            CustomerMenuService menuService = new CustomerMenuService(db, scanner);
+            while (true) {
+                int menuChoice = menuService.showMenu(currentCustomer, conn);
 
+                switch (menuChoice) {
+                    case 1 -> handleRoomBooking(scanner, db, conn);
+                    case 2 -> handleViewReservations(scanner, db, conn);
+                    case 3 -> {
+                        displayExitMessage();
+                        return;
+                    }
+                    default -> System.out.println("❌ Invalid choice. Please try again.");
+                }
+            }
         } catch (SQLException e) {
-            System.out.println("💥 Database Error: " + e.getMessage());
-            logger.severe("Database Error: " + e.getMessage());
+            logger.severe("Error: " + e.getMessage());
+            System.out.println(ConsoleColors.BRIGHT_RED + "❌ A system error occurred. Please try again later." + ConsoleColors.RESET);
         } finally {
-            try {
-                if (conn != null) conn.close();
-            } catch (SQLException ex) {
-                System.out.println("⚠️ Error closing the connection: " + ex.getMessage());
-                logger.warning("Error closing the connection: " + ex.getMessage());
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    logger.severe("❌ Error closing database connection: " + e.getMessage());
+                }
             }
         }
     }
 
-    // Handles the payment process after booking
-    private static void proceedToPayment(Reservation reservation, Customer customer, Connection conn, DbFunctions db, Scanner scanner) {
-        System.out.printf("You selected Room %d for payment.%n", reservation.getRoomId());
-        System.out.print("💳 Do you want to proceed with payment now? (yes/no): ");
+    // Display a fun welcome message
+    private static void displayWelcomeMessage() {
+        System.out.println(ConsoleColors.BRIGHT_PURPLE + "\n╔════════════════════════════════════════════════════════════════╗");
+        System.out.println("║                 🏨 WELCOME TO HOTEL TRANSYLVANIA 🏨            ║");
+        System.out.println("╠════════════════════════════════════════════════════════════════╣");
+        System.out.println("║              A Place Where Comfort Meets Elegance!             ║");
+        System.out.println("║            Enjoy your stay with us, where luxury reigns.       ║");
+        System.out.println("╚════════════════════════════════════════════════════════════════╝" + ConsoleColors.RESET);
+    }
 
-        String paymentChoice = scanner.nextLine();
-        if (paymentChoice.equalsIgnoreCase("yes")) {
-            try {
-                LocalDate paymentDate = LocalDate.now();
-                int reservationId = reservation.getReservationId(); // ✅ Now it's safe
-                double price = db.getRoomById(conn, reservation.getRoomId()).getPrice(); // If you still want to fetch the price
+    // Display a fun exit message
+    private static void displayExitMessage() {
+        System.out.println(ConsoleColors.BRIGHT_PURPLE + "\n╔══════════════════════════════════════════════════╗");
+        System.out.println("║            👋 THANK YOU FOR VISITING!            ║");
+        System.out.println("║  We hope to see you again at Hotel Transylvania! ║");
+        System.out.println("╚══════════════════════════════════════════════════╝\n" + ConsoleColors.RESET);
+    }
 
-                db.insertPayment(conn, reservationId, price, paymentDate, "Paid");
-                db.updateReservationStatus(conn, reservationId, "Paid");
-                System.out.println("✅ Payment processed successfully!");
-                System.out.println("🏨 Thank you for booking with Hotel Transylvania!");
-            } catch (Exception e) {
-                System.out.println("❌ An error occurred while processing the payment.");
-                logger.severe("Payment Error: " + e.getMessage());
-            }
-        } else {
-            System.out.println("🔔 You opted to pay later. Your reservation status remains 'Pending'.");
+    private static void handleRoomBooking(Scanner scanner, DbFunctions db, Connection conn) throws SQLException {
+        // Styled Room Booking Header
+        System.out.println(ConsoleColors.BRIGHT_GREEN + "\n╔════════════════════════════════════════════════╗");
+        System.out.println("║                🛌 ROOM BOOKING                 ║");
+        System.out.println("╠════════════════════════════════════════════════╣");
+        System.out.println("║  Welcome to the booking section! Choose from  ║");
+        System.out.println("║  a variety of rooms to make your stay amazing.║");
+        System.out.println("╚════════════════════════════════════════════════╝" + ConsoleColors.RESET);
+
+        BookingService bookingService = new BookingService(db, scanner);
+
+        // Step 1: Process Room Booking
+        Reservation reservation = bookingService.processBooking(currentCustomer, conn);
+
+        if (reservation == null) {
+            System.out.println(ConsoleColors.BRIGHT_YELLOW + "⚠️ Booking canceled. Returning to the main menu." + ConsoleColors.RESET);
+            return;
         }
 
+        // Step 2: Proceed to Payment
+        PaymentProcessing.proceedToPayment(reservation, currentCustomer, conn, db, scanner);
+    }
+
+    // Handle Login or Registration Process
+    private static Customer handleLoginOrRegistration(Scanner scanner, DbFunctions db, Connection conn) throws SQLException {
+        Customer customer = null;
+
+        while (customer == null) {
+            UIHelper.printHeader("Login or Register");
+
+            System.out.println(ConsoleColors.BRIGHT_BLUE + "\n🔐 What would you like to do?");
+            System.out.println("1. Log In");
+            System.out.println("2. Register" + ConsoleColors.RESET);
+            System.out.print("Enter 1 or 2: ");
+
+            String choice = scanner.nextLine().trim();
+            switch (choice) {
+                case "1":
+                    customer = CustomerService.loginCustomer(scanner, db, conn);
+                    if (customer == null && InputValidator.getYesOrNo(scanner, "Would you like to register instead? (yes/no): ")) {
+                        customer = CustomerService.registerCustomer(scanner, db, conn);
+                    }
+                    break;
+                case "2":
+                    customer = CustomerService.registerCustomer(scanner, db, conn);
+                    break;
+                default:
+                    System.out.println(ConsoleColors.BRIGHT_RED + "❌ Invalid input. Please enter 1 or 2." + ConsoleColors.RESET);
+            }
+        }
+        return customer;
+    }
+
+    // Handle Viewing Reservations
+    private static void handleViewReservations(Scanner scanner, DbFunctions db, Connection conn) throws SQLException {
+        // Styled Reservations Header
+        System.out.println(ConsoleColors.BRIGHT_BLUE + "\n╔══════════════════════════════════════════════════════╗");
+        System.out.println("║                 📋 YOUR RESERVATIONS                 ║");
+        System.out.println("╠══════════════════════════════════════════════════════╣");
+        System.out.println("║ Here are your current reservations. You can view    ║");
+        System.out.println("║ details or print receipts for each reservation.      ║");
+        System.out.println("╚══════════════════════════════════════════════════════╝" + ConsoleColors.RESET);
+
+        List<Reservation> customerReservations = db.getReservationByCustomerId(conn, currentCustomer.getCustomerId());
+        if (customerReservations.isEmpty()) {
+            System.out.println(ConsoleColors.BRIGHT_RED + "❌ You don't have any reservations yet." + ConsoleColors.RESET);
+            return;
+        }
+
+        // Print reservations in a styled table
+        System.out.println("\n╔══════════════════════════════════════════════════════════╗");
+        System.out.println("║ ID  | Check-in Date | Check-out Date | Room | Status     ║");
+        System.out.println("╠══════════════════════════════════════════════════════════╣");
+
+        for (Reservation res : customerReservations) {
+            System.out.printf("║ %-3d | %-13s | %-14s | %-4d | %-11s ║%n",
+                    res.getReservationId(),
+                    res.getCheckInDate(),
+                    res.getCheckOutDate(),
+                    res.getRoomId(),
+                    res.getStatus());
+        }
+        System.out.println("╚══════════════════════════════════════════════════════════╝");
+
+        // Fetch and print receipt option
+        while (true) {
+            System.out.print(ConsoleColors.BRIGHT_YELLOW + "\n🔎 Enter Reservation ID to view receipt: " + ConsoleColors.RESET);
+
+            String idInput = scanner.nextLine().trim();
+            try {
+                int resId = Integer.parseInt(idInput);
+                Reservation reservation = db.getReservationById(conn, resId);
+
+                if (reservation == null || reservation.getCustomerId() != currentCustomer.getCustomerId()) {
+                    System.out.println(ConsoleColors.BRIGHT_RED + "❌ Invalid Reservation ID. Please try again." + ConsoleColors.RESET);
+                    continue;
+                }
+
+                // Show receipt
+                String receipt = db.getReceiptByReservationId(conn, resId, currentCustomer.getCustomerId());
+                System.out.println(receipt);
+
+                // Save receipt option
+                System.out.print(ConsoleColors.BRIGHT_GREEN + "\n💾 Would you like to save this receipt? (yes/no): " + ConsoleColors.RESET);
+                String saveChoice = scanner.nextLine().trim().toLowerCase();
+
+                if (saveChoice.equals("yes")) {
+                    System.out.println(ConsoleColors.BRIGHT_GREEN + "✅ Receipt saved successfully!" + ConsoleColors.RESET);
+                }
+                break;
+            } catch (NumberFormatException e) {
+                System.out.println(ConsoleColors.BRIGHT_RED + "❌ Please enter a valid numeric Reservation ID." + ConsoleColors.RESET);
+            }
+        }
     }
 }
