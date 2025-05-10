@@ -1,9 +1,16 @@
 package utils;
 
-import java.io.Console;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Scanner;
+import java.util.logging.Logger;
 
 public class InputValidator {
     public static String getValidName(Scanner scanner) {
@@ -19,15 +26,30 @@ public class InputValidator {
     }
 
     public static String getValidEmail(Scanner scanner) {
-        String emailRegex = "^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$";
+        // List of allowed domains
+        List<String> allowedDomains = List.of("gmail.com", "yahoo.com", "outlook.com", "hotmail.com");
+
+        String emailRegex = "^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"; // Basic email format
         String email;
+
         while (true) {
             System.out.print("Enter your email: ");
-            email = scanner.nextLine();
-            if (email.matches(emailRegex)) {
-                return email;
+            email = scanner.nextLine().trim();
+
+            if (!email.matches(emailRegex)) {
+                System.out.println("❌ Invalid email! Format should be like name@example.com.");
+                continue; // Re-prompt for invalid format
             }
-            System.out.println("❌ Invalid email! Format should be like name@example.com.");
+
+            // Extract the domain part of the email
+            String domain = email.substring(email.indexOf("@") + 1);
+
+            if (!allowedDomains.contains(domain)) {
+                System.out.println("❌ Invalid email domain! Allowed domains are: " + allowedDomains);
+                continue; // Re-prompt for invalid domain
+            }
+
+            return email; // Email is valid
         }
     }
 
@@ -116,4 +138,20 @@ public class InputValidator {
         String passwordRegex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$";
         return password.matches(passwordRegex);
     }
+
+    public static boolean getYesOrNo(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt); // Display the prompt message
+            String response = scanner.nextLine().trim().toLowerCase();
+
+            if (response.equals("yes")) {
+                return true; // Return true if the response is "yes"
+            } else if (response.equals("no")) {
+                return false; // Return false if the response is "no"
+            } else {
+                System.out.println("❌ Invalid input! Please type 'yes' or 'no'."); // Re-prompt for invalid input
+            }
+        }
+    }
+
 }

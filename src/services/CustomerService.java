@@ -62,7 +62,7 @@ public class CustomerService {
             return null;
         }
 
-        System.out.println("✅ Login Successful. \n Welcome back, " + customer.getName() + " !");
+        System.out.println("\n ✅ Login Successful. \n Welcome back, " + customer.getName() + " !");
         return customer;
     }
 

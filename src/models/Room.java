@@ -7,12 +7,14 @@ public class Room implements Serializable {
     private String roomType;
     private double price;
     private boolean availability;
+    private String description; // New field to store the room description
 
-    public Room(int roomId, String roomType, double price, boolean availability) {
+    public Room(int roomId, String roomType, double price, boolean availability, String description) {
         this.roomId = roomId;
         this.roomType = roomType;
         this.price = price;
         this.availability = availability;
+        this.description = description;
     }
 
     public int getRoomId() {
@@ -35,6 +37,10 @@ public class Room implements Serializable {
         this.availability = availability;
     }
 
+    public String getDescription() { // Getter for the description
+        return description;
+    }
+
     @Override
     public String toString() {
         return "Room{" +
@@ -42,6 +48,7 @@ public class Room implements Serializable {
                 ", roomType='" + roomType + '\'' +
                 ", price=" + price +
                 ", availability=" + availability +
+                ", description='" + description + '\'' +
                 '}';
     }
 }

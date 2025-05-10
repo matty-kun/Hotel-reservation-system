@@ -22,7 +22,7 @@ public class CustomerMenuService {
         do {
             System.out.println("\n=== Main Menu ===");
             System.out.println("1. Book a Room");
-            System.out.println("2. View Receipt");
+            System.out.println("2. View Reservations");
             System.out.println("3. Exit");
             System.out.print("Enter your choice: ");
 
